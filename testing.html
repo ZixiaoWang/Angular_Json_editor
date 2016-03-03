@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>JSON Editor Testing</title>
+    <style media="screen">
+      div{margin-left:10px; padding-top:3px;}
+      span{padding:5px 15px;}
+      .grey{background-color: #EEE;}
+      .dark-grey{background-color: #CCC}
+    </style>
+    <script type="text/javascript">
+      function showSize(obj){
+        alert(obj.size);
+      }
+    </script>
+  </head>
+  <body ng-app="test" ng-controller="test">
+    <div>
+      <button ng-repeat="url in urls" ng-click="changeUrl(url)">{{url}}<button>
+      <button type="button" name="button" ng-click="showJson()">Show Json</button>
+    </div>
+      <hr>
+    <div class="mainF" style="border-bottom:1px solid black; margin-left:0px;">
+      <div json-array data="results"></div>
+    </div>
+  </body>
+
+  <script type="text/ng-template" id="jsonArray">
+    <div ng-repeat="item in data" index="{{$index}}">
+      <json-object data="item"></json-object>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="jsonObject">
+    <div ng-repeat="(key, value) in data" value="value">
+      <b>{{key}}</b>
+      <input ng-model="value" ng-if="!isArray(value)"/>
+      <sub-json-array data="value" ng-if="isArray(value)"></sub-json-array>
+    </div><hr>
+  </script>
+
+  <script type="text/ng-template" id="subJsonObject">
+    <div ng-repeat="(key, value) in data" value="value">
+      <b>{{key}}</b>
+      <input ng-model="value" ng-if="!isArray(value)&&!isObject(value)"/>
+      <third-json-object data="value" ng-if="isObject(value)"></third-json-object>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="subJsonArray">
+    <div ng-repeat="obj in data" style="border:1px solid #EEE;">
+      <sub-json-object data="obj"></sub-json-object>
+    <div>
+  </script>
+
+  <script type="text/ng-template" id="thirdJsonObject">
+    <div ng-repeat="(key, value) in data" value="value" style="background-color:#EEE; border:1px solid #DDD;">
+      <b>{{key}}</b>
+      <input ng-model="value" ng-if="!isArray(value)&&!isObject(value)"/>
+      <third-json-array data="value" ng-if="isArray(value)"></third-json-array>
+      <fourth-json-object data="value" ng-if="isObject(value)&&!isArray(value)"></fourth-json-object>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="thirdJsonArray">
+    <div ng-repeat="obj in data" style="border:1px solid #EEE;">
+      <fourth-json-object data="obj"></fourth-json-object>
+    <div>
+  </script>
+
+  <script type="text/ng-template" id="fourthJsonObject">
+    <div ng-repeat="(key, value) in data" value="value" style="background-color:#CCC; border:1px dashed #BBB;">
+      <b>{{key}}</b>
+      <input ng-model="value" ng-if="!isArray(value)&&!isObject(value)"/>
+      <fourth-json-array data="value" ng-if="isArray(value)"></fourth-json-array>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="fourthJsonArray">
+    <div ng-repeat="obj in data" style="border:1px solid #CCC;">
+      <fifth-json-object data="obj"></fifth-json-object>
+    <div>
+  </script>
+
+  <script type="text/ng-template" id="fifthJsonObject">
+    <div ng-repeat="(key, value) in data" value="value" style="background-color:#BBB; border:1px dashed #999;">
+      <b>{{key}}</b>
+      <input ng-model="value" ng-if="!isArray(value)&&!isObject(value)"/>
+    </div>
+  </script>
+
+  <script src="./lib/angular.min.js"></script>
+  <script type="text/javascript">
+    var app = angular.module('test', []);
+    app.controller('test', function($scope, $http){
+      $scope.urls = ['/tamc/api/index.json','/tamc/api/about.json','/tamc/api/contactus.json','/tamc/api/events.json','/tamc/api/exhibition.json','/tamc/api/seminar.json','/tamc/api/seminarRegister.json','/tamc/api/seminarSpeaker.json'];
+      $http.get($scope.urls[0])
+      .then(
+        function(res){
+          $scope.results = angular.copy(res.data.content);
+          console.log($scope.results);
+          $scope.editJson($scope.results[0]);
+        }, function(err){ console.log(err); }
+      );
+
+      $scope.changeUrl = function(url){
+        $http.get(url)
+        .then(
+          function(res){
+            $scope.results = angular.copy(res.data.content);
+            console.log($scope.results);
+            $scope.editJson($scope.results[0]);
+          }, function(err){ console.log(err); }
+        );
+      }
+
+      $scope.editJson = function(obj){
+        $scope.keyArr = Object.keys(obj);
+        angular.forEach(obj, function(value, key){
+          if(angular.isObject(value) == false){
+            console.log(key + " : " + value);
+            angular.element(document.querySelector('.mainF')).append('<json-editor></json-editor>');
+          }else{
+            $scope.editJson(value);
+          }
+        });
+      }
+      $scope.showJson = function(){
+        console.log($scope.results);
+      }
+      $scope.notArray = function(obj){
+        return !angular.isArray(obj);
+      }
+    })
+    .directive('jsonArray', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'jsonArray',
+        scope:{
+          data:'='
+        },
+        link:function(scope, elem, attr, ctrl){
+        }
+      }
+    })
+    .directive('jsonObject', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'jsonObject',
+        scope:{
+          data:'=',
+          value:'='
+        },
+        link:function(scope, elem, attr){
+          if(angular.isArray(scope.value)){
+            var content = angular.element('<json-array data="value"></json-array>');
+            elem.append(content);
+            $compile(elem.contents)(scope);
+          }else{
+          }
+        },
+        controller:function($scope){
+          $scope.isArray = function(obj){return angular.isArray(obj); }
+        }
+      }
+    })
+    .directive('subJsonArray', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'subJsonArray',
+        scope:{
+          data:'='
+        },
+        link:function(scope, elem, attr){
+        }
+      }
+    })
+    .directive('subJsonObject', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'subJsonObject',
+        scope:{
+          data:'='
+        },
+        controller:function($scope){
+          $scope.isArray = function(obj){return angular.isArray(obj); }
+          $scope.isObject = function(obj){return angular.isObject(obj); }
+        }
+      }
+    })
+    .directive('thirdJsonObject', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'thirdJsonObject',
+        scope:{
+          data:'='
+        },
+        controller:function($scope){
+          $scope.isArray = function(obj){return angular.isArray(obj); }
+          $scope.isObject = function(obj){return angular.isObject(obj); }
+        }
+      }
+    })
+    .directive('thirdJsonArray', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'thirdJsonArray',
+        scope:{
+          data:'='
+        },
+        controller:function($scope){
+          $scope.isArray = function(obj){return angular.isArray(obj); }
+          $scope.isObject = function(obj){return angular.isObject(obj); }
+        }
+      }
+    })
+    .directive('fourthJsonObject', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'fourthJsonObject',
+        scope:{
+          data:'='
+        },
+        controller:function($scope){
+          $scope.isArray = function(obj){return angular.isArray(obj); }
+          $scope.isObject = function(obj){return angular.isObject(obj); }
+        }
+      }
+    })
+    .directive('fourthJsonArray', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'fourthJsonArray',
+        scope:{
+          data:'='
+        },
+        controller:function($scope){
+          $scope.isArray = function(obj){return angular.isArray(obj); }
+          $scope.isObject = function(obj){return angular.isObject(obj); }
+        }
+      }
+    })
+    .directive('fifthJsonObject', function($compile){
+      return {
+        restrict:'AE',
+        templateUrl:'fifthJsonObject',
+        scope:{
+          data:'='
+        },
+        controller:function($scope){
+          $scope.isArray = function(obj){return angular.isArray(obj); }
+          $scope.isObject = function(obj){return angular.isObject(obj); }
+        }
+      }
+    });
+  </script>
+</html>
